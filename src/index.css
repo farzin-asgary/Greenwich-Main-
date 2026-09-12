@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --greenwich-emerald: #1b4332;
+    --greenwich-emerald-light: #2d6a4f;
+    --greenwich-gold: #d4af37;
+    --greenwich-gold-accent: #f3c623;
+    --greenwich-midnight: #0b1312;
+    --greenwich-card-bg: #121e1c;
+    --greenwich-paper: #fbf9f5;
+  }
+  
+  body {
+    font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #0b1312;
+    color: #e8ece9;
+    /* direction: rtl; handled by html tag */
+    line-height: 1.7; /* Better readability for Persian text */
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.4;
+  }
+}
+
+/* Custom Scrollbar for sleek dark editorial UI */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b1312;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e302c;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2d6a4f;
+}
+
+/* Accessibility: Focus styles globally if outline is removed somewhere */
+*:focus-visible {
+  outline: 2px solid var(--greenwich-gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Glass & Card Effetcs */
+.greenwich-card {
+  background: rgba(18, 30, 28, 0.85);
+  border: 1px solid rgba(45, 106, 79, 0.25);
+  backdrop-filter: blur(12px);
+}
+.greenwich-card-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.greenwich-card-hover:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(27, 67, 50, 0.3);
+}
+.greenwich-gold-glow {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.25);
+}
+.greenwich-emerald-glow {
+  box-shadow: 0 0 25px rgba(45, 106, 79, 0.35);
+}

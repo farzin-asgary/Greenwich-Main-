@@ -1,0 +1,6 @@
+{
+  "name": "Greenwich Club",
+  "description": "پلتفرم مدیریت هوشمند زمان و تجربه مشتری در کافه‌ها (Location-Based Experience CRM)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
