@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  web:
+    build: 
+      context: ..
+      dockerfile: infra/Dockerfile.web
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    labels:
+      - "X-Robots-Tag=noindex"
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    environment:
+      - DJANGO_SETTINGS_MODULE=greenwich.settings.staging
+      - DEMO_MODE=true
+  db:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=greenwich
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=greenwich
+  redis:
+    image: redis:7-alpine

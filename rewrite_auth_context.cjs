@@ -1,5 +1,5 @@
-/// <reference types="vite/client" />
-
+const fs = require('fs');
+const content = `
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole, hasPermission, Permission } from '../permissions';
 
@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchMe = async () => {
       try {
         if (isLive) {
-          const response = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+          const response = await fetch(\`\${API_BASE}/auth/me\`, { credentials: 'include' });
           if (response.ok) {
             const data = await response.json();
             setUser(data.user);
@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (phone: string, selectedRole: UserRole, name?: string) => {
     const newUser: UserAccount = {
-      id: `u-${Date.now()}`,
+      id: \`u-\${Date.now()}\`,
       name: name || 'کاربر سیستم',
       phone,
       role: selectedRole,
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     if (isLive) {
       try {
-        await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+        await fetch(\`\${API_BASE}/auth/logout\`, { method: 'POST', credentials: 'include' });
       } catch (e) {
         console.error('Logout error', e);
       }
@@ -125,3 +125,17 @@ export const useAuth = () => {
   }
   return context;
 };
+`;
+fs.writeFileSync('src/app/auth/AuthContext.tsx', content);
+
+// Now fix PublicLayout.tsx to remove role switcher banner
+let layoutCode = fs.readFileSync('src/layouts/public/PublicLayout.tsx', 'utf8');
+layoutCode = layoutCode.replace(/const { role, switchRole, isAuthenticated } = useAuth\(\);/, 'const { isAuthenticated } = useAuth();');
+
+// The banner starts at <div className="bg-[#121e1c] border-b border-emerald-900/60 py-2 px-4 and ends before <header
+const headerIndex = layoutCode.indexOf('      {/* Main Public Header */}');
+if (headerIndex !== -1) {
+    const bannerRegex = /\{\/\* Quick Role Switcher Banner for Evaluation & Testing \*\/\}.*?(?=      \{\/\* Main Public Header \*\/})/s;
+    layoutCode = layoutCode.replace(bannerRegex, '');
+    fs.writeFileSync('src/layouts/public/PublicLayout.tsx', layoutCode);
+}

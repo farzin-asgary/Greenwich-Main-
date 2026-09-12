@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 /**
  * Greenwich Club Typed API Client
  * Wraps backend endpoints with asynchronous simulated network calls and contract response schemas.
@@ -23,6 +24,36 @@ import {
 
 const delay = (ms: number = 200) => new Promise(resolve => setTimeout(resolve, ms));
 
+const isLive = import.meta.env.VITE_API_MODE === 'live';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+
+async function fetchLive(endpoint: string, options: RequestInit = {}) {
+  const url = `${API_BASE}${endpoint}`;
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {})
+  };
+  
+  // Note: credentials: 'include' is important for SameSite=Lax HttpOnly session cookies
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include'
+  });
+  
+  if (response.status === 410) {
+    const errorData = await response.json().catch(() => ({}));
+    throw { status: 410, data: errorData };
+  }
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Network response was not ok' }));
+    throw new Error(errorData.message || 'Error occurred');
+  }
+  
+  return response.json();
+}
+
 export const api = {
   // Public Entry
   async getQREntry(qrToken: string): Promise<{ data: QREntryContext }> {
@@ -34,6 +65,7 @@ export const api = {
 
   // Auth
   async requestOTP(phone: string, qrToken: string) {
+    if (isLive) return fetchLive(`/auth/otp/request`, { method: 'POST', body: JSON.stringify({ phone, qrToken }) });
     await delay(300);
     return mockEngine.requestOTP(phone, qrToken);
   },
@@ -210,6 +242,7 @@ export const api = {
 
   // Analytics Event
   async recordEvent(eventName: string, objectType?: string, objectId?: string, metadata?: Record<string, unknown>) {
+    if (isLive) return fetchLive(`/events`, { method: 'POST', body: JSON.stringify({ eventName, objectType, objectId, metadata }) });
     return mockEngine.recordEvent(eventName, objectType, objectId, metadata);
   },
 

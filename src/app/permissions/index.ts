@@ -2,10 +2,11 @@
  * Permission & Role Definitions for Greenwich Club
  */
 
-export type UserRole = 'CUSTOMER' | 'CAFE' | 'ADMIN' | 'CONTENT_WRITER';
+export type UserRole = 'CUSTOMER' | 'CAFE' | 'STAFF' | 'ADMIN' | 'CONTENT_WRITER';
 
 export type Permission =
   | 'VIEW_OWN_PROFILE'
+  | 'REDEEM_COUPON'
   | 'VIEW_OWN_VISITS'
   | 'VIEW_CAFE_CUSTOMERS'
   | 'MANAGE_CAFE_OFFERS'
@@ -20,6 +21,10 @@ export type Permission =
   | 'MANAGE_ALL_CONTENT';
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  STAFF: [
+    'VIEW_OWN_PROFILE',
+    'REDEEM_COUPON',
+  ],
   CUSTOMER: [
     'VIEW_OWN_PROFILE',
     'VIEW_OWN_VISITS',
@@ -62,6 +67,8 @@ export function getDefaultRouteForRole(role: UserRole): string {
   switch (role) {
     case 'CUSTOMER':
       return '/panel/user';
+    case 'STAFF':
+      return '/dashboard/redeem';
     case 'CAFE':
       return '/dashboard/overview';
     case 'ADMIN':

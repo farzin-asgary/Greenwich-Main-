@@ -19,9 +19,15 @@ import { ForCafesPage } from '../../features/marketing/ForCafesPage';
 import { AboutPage } from '../../features/marketing/AboutPage';
 import { BlogPage } from '../../features/marketing/BlogPage';
 import { ContactPage } from '../../features/marketing/ContactPage';
-import { LoginPage } from '../../features/marketing/LoginPage';
+import { LoginPage } from '../../features/auth/LoginPage';
+import { ForgotPasswordPage } from '../../features/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '../../features/auth/ResetPasswordPage';
+import { FirstTimePasswordPage } from '../../features/auth/FirstTimePasswordPage';
+import { LockedAccountPage } from '../../features/auth/LockedAccountPage';
 import { PrivacyPage } from '../../features/marketing/PrivacyPage';
 import { TermsPage } from '../../features/marketing/TermsPage';
+import { DataRetentionPage } from '../../features/marketing/DataRetentionPage';
+import { FAQPage } from '../../features/marketing/FAQPage';
 import { InteractivePersonasPage } from '../../features/marketing/InteractivePersonasPage';
 
 // Guest QR Flow Pages
@@ -109,8 +115,14 @@ export const AppRouter: React.FC = () => {
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/login/forgot" element={<ForgotPasswordPage />} />
+          <Route path="/login/reset/:token" element={<ResetPasswordPage />} />
+          <Route path="/login/first-time" element={<FirstTimePasswordPage />} />
+          <Route path="/login/locked" element={<LockedAccountPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/legal/data-retention" element={<DataRetentionPage />} />
+          <Route path="/faq" element={<FAQPage />} />
           <Route path="/interactive-personas" element={<InteractivePersonasPage />} />
           <Route path="/auth" element={<Navigate to="/login" replace />} />
 
