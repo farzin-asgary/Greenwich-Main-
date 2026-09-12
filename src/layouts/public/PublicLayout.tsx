@@ -14,6 +14,7 @@ export const PublicLayout: React.FC<{ children?: React.ReactNode }> = ({ childre
     { path: '/features', label: 'قابلیت‌ها' },
     { path: '/pricing', label: 'قیمت‌گذاری' },
     { path: '/for-cafes', label: 'ویژه کافه‌ها' },
+    { path: '/interactive-personas', label: 'پرسوناهای روایی' },
     { path: '/about', label: 'درباره ما' },
     { path: '/blog', label: 'وبلاگ' },
     { path: '/contact', label: 'تماس و دمو' },

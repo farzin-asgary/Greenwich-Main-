@@ -1,15 +1,16 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/app/router/AppRouter.tsx', 'utf8');
+const files = [
+  'src/features/marketing/LandingPage.tsx',
+  'src/features/marketing/ForCafesPage.tsx',
+  'src/features/marketing/InteractivePersonasPage.tsx',
+  'src/features/marketing/PricingPage.tsx',
+  'src/features/marketing/FeaturesPage.tsx'
+];
 
-const imports = `
-import { GuestHomePage } from '../../features/guest-home/GuestHomePage';
-import { OffersPage } from '../../features/offer-claim/OffersPage';
-import { CustomerHomePage } from '../../features/customer/CustomerHomePage';
-import { CustomerVisitsPage } from '../../features/customer/CustomerVisitsPage';
-import { CustomerOffersPage } from '../../features/customer/CustomerOffersPage';
-import { CustomerProfilePage } from '../../features/customer/CustomerProfilePage';
-import { CustomerPrivacyPage } from '../../features/customer/CustomerPrivacyPage';
-`;
-
-code = code.replace(/import \{ AuthProvider \}/, imports + 'import { AuthProvider }');
-fs.writeFileSync('src/app/router/AppRouter.tsx', code);
+files.forEach(file => {
+  if (fs.existsSync(file)) {
+    let content = fs.readFileSync(file, 'utf8');
+    content = content.replace(/..\/..\/shared\/ui\/PublicLayout/g, '../../layouts/public/PublicLayout');
+    fs.writeFileSync(file, content);
+  }
+});

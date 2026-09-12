@@ -1,110 +1,66 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Link as RouterLink } from 'react-router-dom';
 import { PublicLayout } from '../../layouts/public/PublicLayout';
-import { Coffee, Users, ShieldAlert, ArrowLeft, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
+import { TrendingUp, Database, Coins, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const ForCafesPage: React.FC = () => {
-  const problemsAndSolutions = [
-    {
-      problem: 'مشتریان مراجعه می‌کنند اما کاملاً ناشناس باقی می‌مانند.',
-      solution: 'با اسکن QR روی میز و ورود سریع به گرینویچ، لیدهای واقعی با شماره همراه و اسم ثبت می‌شوند.'
-    },
-    {
-      problem: 'کافه قادر به تشخیص مشتریان وفادار و مراجعات مجدد نیست.',
-      solution: 'داشبورد کافه، تعداد مراجعات، تاریخچه حضور و سلیقه مشتری را به‌صورت منظم نمایش می‌دهد.'
-    },
-    {
-      problem: 'تخفیف‌ها و پیشنهادهای تبلیغاتی عمومی و بی‌هدف هستند.',
-      solution: 'تعریف کوپن‌های تخفیف پویای صندوق براساس رفتار، اولین مراجعه یا ماه تولد مشتری.'
-    },
-    {
-      problem: 'ارتباط با مشتری پس از خروج از محیط فیزیکی کافه قطع می‌شود.',
-      solution: 'امکان ارسال پیشنهادهای بازگشت و دعوت به رویدادهای بعدی با حفظ کامل رضایت حریم خصوصی.'
-    }
-  ];
-
   return (
     <PublicLayout>
-      <div className="py-12 px-6 max-w-5xl mx-auto space-y-12">
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#121e1c] border border-[#d4af37]/40 text-[#d4af37] text-xs font-bold">
-            <Coffee className="w-3.5 h-3.5" />
-            <span>حل چالش‌های واقعی مدیران کافه</span>
-          </div>
-
-          <h1 className="text-3xl font-extrabold text-emerald-100 font-['Playfair_Display',serif]">
-            چرا کافه‌های پیشرو به گرینویچ کلاب نیاز دارند؟
+      <div className="space-y-16 pb-20">
+        
+        {/* Header */}
+        <section className="text-center space-y-4 pt-12">
+          <h1 className="text-3xl sm:text-4xl font-bold text-emerald-100 font-['Playfair_Display',serif]">
+            ویژه کافه‌ها: خلق ثروت از داده
           </h1>
-          <p className="text-xs sm:text-sm text-emerald-300/70 max-w-xl mx-auto">
-            از یک کافه سنتی به یک محیط تعاملی و هوشمند با مشتریان شناخته‌شده تبدیل شوید.
+          <p className="text-sm sm:text-base text-emerald-300/80 max-w-2xl mx-auto leading-relaxed">
+            سیستم گرینویچ فقط یک سرگرمی برای میز مشتری نیست. این یک موتور خلق ثروت است که با استفاده از مفاهیم روانشناسی و داده‌های دسته اول (Zero-Party Data) فروش شما را افزایش می‌دهد.
           </p>
-        </div>
+        </section>
 
-        {/* Problem vs Solution Comparison */}
-        <div className="space-y-4">
-          <h2 className="text-base font-bold text-emerald-100 text-center">مقایسه چالش‌های کافه و راهکار گرینویچ</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {problemsAndSolutions?.map((item, idx) => (
-              <div
-                key={idx}
-                className="greenwich-card rounded-2xl p-5 border border-emerald-900/60 space-y-3"
-              >
-                <div className="bg-amber-950/40 p-3 rounded-xl border border-amber-800/40 text-xs text-amber-200 flex items-start gap-2">
-                  <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block text-amber-300">چالش کافه:</span>
-                    <span>{item.problem}</span>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-950/60 p-3 rounded-xl border border-emerald-800/60 text-xs text-emerald-100 flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block text-emerald-300">راهکار گرینویچ کلاب:</span>
-                    <span>{item.solution}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+        {/* ROI and Zero Party Data */}
+        <section className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="greenwich-card p-8 rounded-3xl border border-emerald-900/60 space-y-4 bg-gradient-to-br from-[#0b1312] to-[#121e1c]">
+            <Database className="w-10 h-10 text-[#d4af37]" />
+            <h3 className="text-xl font-bold text-emerald-100">داده‌های دسته اول (Zero-Party Data)</h3>
+            <p className="text-sm text-emerald-300/80 leading-relaxed">
+              در دنیای امروز که حریم خصوصی اهمیت زیادی دارد، خریدن لیست شماره تلفن یا تبلیغات کور بازدهی ندارد. مشتریان گرینویچ با رضایت کامل و برای دسترسی به محتوای روی میز، سلیقه قهوه، روز تولد، مود روانی و شماره تماس خود را در اختیار شما قرار می‌دهند.
+            </p>
           </div>
-        </div>
-
-        {/* Benefits Grid */}
-        <div className="greenwich-card rounded-3xl p-8 border border-[#d4af37]/40 space-y-6 greenwich-gold-glow bg-gradient-to-br from-[#121e1c] to-[#1b4332]/60">
-          <h3 className="text-lg font-bold text-emerald-100 text-center">دستاوردهای ملموس برای کافه شما</h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center text-xs">
-            <div className="bg-[#0b1312] p-4 rounded-2xl border border-emerald-900 space-y-2">
-              <span className="text-2xl font-bold text-[#d4af37] block font-mono">+۳۵٪</span>
-              <span className="font-bold text-emerald-100 block">افزایش نرخ مراجعات مجدد</span>
-              <p className="text-[11px] text-emerald-400/80">با ارائه کوپن‌های بازگشت و یادآوری پیشنهادهای اختصاصی</p>
-            </div>
-
-            <div className="bg-[#0b1312] p-4 rounded-2xl border border-emerald-900 space-y-2">
-              <span className="text-2xl font-bold text-[#d4af37] block font-mono">۱۰۰٪</span>
-              <span className="font-bold text-emerald-100 block">رضایت و شفافیت PII</span>
-              <p className="text-[11px] text-emerald-400/80">ثبت داده‌ها صرفاً با موافقت صریح و آگاهانه مهمان</p>
-            </div>
-
-            <div className="bg-[#0b1312] p-4 rounded-2xl border border-emerald-900 space-y-2">
-              <span className="text-2xl font-bold text-[#d4af37] block font-mono font-sans">۰ ثانیه</span>
-              <span className="font-bold text-emerald-100 block">نیاز به نصب نرم‌افزار برای کاربر</span>
-              <p className="text-[11px] text-emerald-400/80">اجرا مستقیم در وب بدون اشغال حافظه گوشی</p>
-            </div>
+          <div className="greenwich-card p-8 rounded-3xl border border-emerald-900/60 space-y-4 bg-gradient-to-br from-[#0b1312] to-[#121e1c]">
+            <TrendingUp className="w-10 h-10 text-[#d4af37]" />
+            <h3 className="text-xl font-bold text-emerald-100">بیش‌فروشی (Up-selling) هدفمند</h3>
+            <p className="text-sm text-emerald-300/80 leading-relaxed">
+              وقتی مشتری در حال مطالعه یک داستان جنایی است، سیستم هوشمند گرینویچ به او یک پیشنهاد پاپ‌آپ می‌دهد: «یک اسپرسوی دبل با ۲۰٪ تخفیف چطور است؟» فروش جانبی بر اساس مود و محتوای در حال مصرف، نرخ تبدیل را تا ۴۰٪ افزایش می‌دهد.
+            </p>
           </div>
-        </div>
+          <div className="greenwich-card p-8 rounded-3xl border border-emerald-900/60 space-y-4 bg-gradient-to-br from-[#0b1312] to-[#121e1c]">
+            <RefreshCw className="w-10 h-10 text-[#d4af37]" />
+            <h3 className="text-xl font-bold text-emerald-100">بازگشت سرمایه و وفاداری</h3>
+            <p className="text-sm text-emerald-300/80 leading-relaxed">
+              پیش‌بینی ریزش مشتری (Churn Prediction). الگوریتم‌های گرینویچ متوجه می‌شوند کدام مشتری وفادار اخیراً به کافه سر نزده است. با ارسال یک کمپین پیامکی حاوی یک هدیه شخصی‌سازی شده، او را به کافه برمی‌گردانیم.
+            </p>
+          </div>
+          <div className="greenwich-card p-8 rounded-3xl border border-emerald-900/60 space-y-4 bg-gradient-to-br from-[#0b1312] to-[#121e1c]">
+            <Coins className="w-10 h-10 text-[#d4af37]" />
+            <h3 className="text-xl font-bold text-emerald-100">بهینه‌سازی منو</h3>
+            <p className="text-sm text-emerald-300/80 leading-relaxed">
+              داده‌های ثبت شده نشان می‌دهد کدام آیتم‌های منو بین کدام تیپ شخصیتی محبوب‌ترند. آیا مشتریانی که کتاب‌های رمانتیک می‌خوانند، چای و دسر بیشتری سفارش می‌دهند؟ این بینش‌ها مستقیماً بر مهندسی منوی کافه تأثیر می‌گذارند.
+            </p>
+          </div>
+        </section>
 
-        <div className="text-center">
-          <RouterLink
+        {/* CTA */}
+        <section className="text-center pt-8 border-t border-emerald-900/40 max-w-3xl mx-auto">
+          <h2 className="text-xl font-bold text-emerald-100 mb-6">برای دریافت فایل کامل پرزنتیشن کلیک کنید</h2>
+          <Link
             to="/contact"
-            className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-[#2d6a4f] to-[#1b4332] text-[#fbf9f5] font-bold text-xs hover:brightness-110 transition-all border border-[#d4af37]/40 shadow-xl inline-flex items-center gap-2"
+            className="px-8 py-3.5 rounded-2xl bg-[#2d6a4f] text-[#fbf9f5] font-bold text-sm hover:brightness-110 transition-all inline-flex items-center gap-2 border border-[#d4af37]/40 shadow-lg"
           >
-            <span>درخواست دمو و فعال‌سازی در کافه</span>
+            مشاوره و راه‌اندازی
             <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
-          </RouterLink>
-        </div>
+          </Link>
+        </section>
       </div>
     </PublicLayout>
   );

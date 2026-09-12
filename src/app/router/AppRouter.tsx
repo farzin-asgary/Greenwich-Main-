@@ -22,6 +22,7 @@ import { ContactPage } from '../../features/marketing/ContactPage';
 import { LoginPage } from '../../features/marketing/LoginPage';
 import { PrivacyPage } from '../../features/marketing/PrivacyPage';
 import { TermsPage } from '../../features/marketing/TermsPage';
+import { InteractivePersonasPage } from '../../features/marketing/InteractivePersonasPage';
 
 // Guest QR Flow Pages
 import { QRLandingPage } from '../../features/guest-entry/QRLandingPage';
@@ -110,6 +111,8 @@ export const AppRouter: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/interactive-personas" element={<InteractivePersonasPage />} />
+          <Route path="/auth" element={<Navigate to="/login" replace />} />
 
           {/* Entry QR Landing & Table Guest Experience */}
           <Route path="/g/:qrToken" element={<QRLandingPage />} />
@@ -202,6 +205,11 @@ export const AppRouter: React.FC = () => {
           <Route path="/admin-panel/support" element={<AdminSupportPage />} />
           <Route path="/admin-panel/settings" element={<AdminSettingsPage />} />
 
+          {/* Aliases requested by architecture */}
+          <Route path="/app/cafe-panel/*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/app/writers-studio/*" element={<Navigate to="/content-studio/dashboard" replace />} />
+          <Route path="/app/admin/*" element={<Navigate to="/admin-panel/overview" replace />} />
+          
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
