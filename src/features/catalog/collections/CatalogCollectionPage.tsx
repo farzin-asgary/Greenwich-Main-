@@ -1,101 +1,150 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { PublicLayout } from '../../../layouts/public/PublicLayout';
-import { CuratedCollection, BookWork } from '../../../shared/types';
-import { api as apiClient } from '../../../shared/api/client';
-import { Bookmark, ArrowRight } from 'lucide-react';
-import { BookCard } from '../../../shared/ui/BookCard';
+import { ArrowRight, Clock, Layers, BookOpen } from 'lucide-react';
+import { LoadingState } from '../../../shared/ui/LoadingState';
+import { ErrorState } from '../../../shared/ui/ErrorState';
+import { ContentCard } from '../components/ContentCard';
+
+interface CollectionItem {
+  slug: string;
+  title: string;
+  summary: string;
+  authorName: string;
+  coverImage?: string;
+  readingTime: number; // in minutes
+  variant: 'short' | 'serial';
+}
+
+interface Collection {
+  slug: string;
+  title: string;
+  summary: string;
+  coverImage?: string;
+  compiler: string; // name of the compiler
+  items: CollectionItem[];
+}
+
+const MOCK_COLLECTION: Collection = {
+  slug: 'rainy-nights',
+  title: 'برای شب‌های بارانی',
+  summary: 'مجموعه‌ای از داستان‌های کوتاه و روایت‌های ملایم، گردآوری شده برای خواندن در شب‌های آرام و بارانیِ کافه. این آثار به ترتیب برای ایجاد یک حس پیوسته چیده شده‌اند.',
+  compiler: 'تحریریه گرینویچ',
+  items: [
+    {
+      slug: 'miz-e-kenar-e-panjereh',
+      title: 'میز کنار پنجره',
+      summary: 'مردی هر پنجشنبه ساعت پنج سر همان میز می‌نشیند و یک فنجان اضافه سفارش می‌دهد. گارسون سه سال نپرسید چرا.',
+      authorName: 'مریم سهرابی',
+      readingTime: 5,
+      variant: 'short'
+    },
+    {
+      slug: 'shahr-e-khamoosh',
+      title: 'شهر خاموش',
+      summary: 'روایتی از خیابان‌های خالی پس از نیمه‌شب.',
+      authorName: 'علی رضایی',
+      readingTime: 12,
+      variant: 'serial'
+    }
+  ]
+};
 
 export const CatalogCollectionPage: React.FC = () => {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug } = useParams();
   const navigate = useNavigate();
-  
-  const [collection, setCollection] = useState<CuratedCollection | null>(null);
-  const [books, setBooks] = useState<BookWork[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<'loading' | 'success' | 'error'>('loading');
+  const [collection, setCollection] = useState<Collection | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const cols = await apiClient.getCollections();
-        const found = cols.data.find(c => c.slug === slug);
-        if (found) {
-          setCollection(found);
-          const allBooks = await apiClient.getCatalogBooks();
-          setBooks(allBooks.data || []);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    setTimeout(() => {
+      setCollection(MOCK_COLLECTION);
+      setState('success');
+    }, 500);
   }, [slug]);
 
-  if (loading) {
-    return (
-      <PublicLayout>
-        <div className="flex justify-center items-center h-64 text-emerald-400">در حال بارگذاری...</div>
-      </PublicLayout>
-    );
-  }
+  if (state === 'loading') return <LoadingState message="در حال بارگذاری مجموعه..." />;
+  if (state === 'error' || !collection) return <ErrorState message="مجموعه مورد نظر یافت نشد." />;
 
-  if (!collection) {
-    return (
-      <PublicLayout>
-        <div className="text-center py-24 text-xl text-emerald-300">مجموعه پیدا نشد</div>
-      </PublicLayout>
-    );
-  }
+  const totalReadingTime = collection.items.reduce((total, item) => total + item.readingTime, 0);
+  const itemCount = collection.items.length;
 
   return (
-    <PublicLayout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        
-        {/* Breadcrumb */}
-        <div className="text-sm text-emerald-400/60 mb-6 flex items-center gap-2">
-          <span className="cursor-pointer hover:text-emerald-300" onClick={() => navigate('/app/home')}>خانه</span>
-          <span>/</span>
-          <span className="cursor-pointer hover:text-emerald-300" onClick={() => navigate('/app/books')}>مجموعه‌ها</span>
-          <span>/</span>
-          <span className="text-emerald-300">{collection.title}</span>
-        </div>
-
-        <button 
-          onClick={() => {
-            if (window.history.length > 2) {
-              navigate(-1);
-            } else {
-              navigate('/app/books');
-            }
-          }}
-          className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 mb-8 transition-colors"
-        >
-          <ArrowRight className="w-4 h-4" />
-          <span>بازگشت</span>
+    <div className="min-h-screen bg-[#050a09] text-emerald-50 font-['Vazirmatn',sans-serif] dir-rtl pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-[#050a09]/90 backdrop-blur-md border-b border-emerald-950/60 px-6 h-16 flex items-center">
+        <button onClick={() => navigate(-1)} className="p-2 -ms-2 rounded-full hover:bg-emerald-900/20 text-emerald-400 transition-colors">
+          <ArrowRight className="w-5 h-5" />
         </button>
+        <h1 className="text-sm font-bold text-emerald-100 ms-4">مجموعه آثار</h1>
+      </header>
 
-        <div className="mb-12 flex flex-col md:flex-row gap-6 items-center md:items-start bg-[#122A20]/40 border border-emerald-900/30 p-8 rounded-3xl">
-          <div className="w-24 h-24 shrink-0 bg-emerald-900/50 rounded-2xl flex items-center justify-center border border-emerald-800/50 shadow-xl">
-             <Bookmark className="w-10 h-10 text-emerald-400" />
+      <main className="max-w-[1200px] mx-auto px-6 py-8 md:py-16">
+        {/* Collection Hero */}
+        <div className="flex flex-col md:flex-row gap-8 lg:gap-16 mb-16">
+          <div className="w-full md:w-64 shrink-0">
+            <div className="aspect-[4/5] rounded-3xl bg-emerald-950/30 border border-emerald-900/40 overflow-hidden relative shadow-2xl">
+              {collection.coverImage ? (
+                <img src={collection.coverImage} alt={collection.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-emerald-900/50 gap-4">
+                  <Layers className="w-16 h-16" />
+                </div>
+              )}
+            </div>
           </div>
-          <div className="text-center md:text-right pt-2">
-            <h1 className="text-3xl md:text-4xl font-bold text-emerald-50 mb-3">
+          
+          <div className="flex-1 pt-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-emerald-50 font-['Playfair_Display',serif] mb-4">
               {collection.title}
             </h1>
-            {collection.description && (
-              <p className="text-emerald-200/80 leading-relaxed max-w-2xl">{collection.description}</p>
-            )}
+            <p className="text-sm text-[#d4af37] font-bold mb-8">
+              گردآوری شده توسط {collection.compiler}
+            </p>
+            <div className="prose prose-invert prose-emerald max-w-none mb-8">
+              <p className="text-[16px] leading-[1.8] text-emerald-100/80 text-justify">
+                {collection.summary}
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-6 text-sm text-emerald-400/80 font-mono bg-emerald-950/20 inline-flex px-6 py-3 rounded-2xl border border-emerald-900/30">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#d4af37]" />
+                <span>{itemCount} اثر</span>
+              </div>
+              <div className="w-1 h-1 rounded-full bg-emerald-800"></div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#d4af37]" />
+                <span>{totalReadingTime} دقیقه</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {books?.map((book) => (
-            <BookCard key={book.id} book={book} />
-          ))}
-        </div>
-      </div>
-    </PublicLayout>
+        {/* Items List */}
+        <section>
+          <div className="flex items-center gap-4 mb-8">
+            <div className="h-px flex-1 bg-gradient-to-l from-emerald-900/50 to-transparent"></div>
+            <h2 className="text-xl font-bold text-emerald-100 font-['Playfair_Display',serif]">فهرست آثار</h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-emerald-900/50 to-transparent"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {collection.items.map((item) => (
+              <ContentCard
+                key={item.slug}
+                id={item.slug}
+                slug={item.slug}
+                title={item.title}
+                summary={item.summary}
+                authorName={item.authorName}
+                variant={item.variant}
+                readingTime={item.readingTime}
+                coverImage={item.coverImage}
+              />
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
   );
 };

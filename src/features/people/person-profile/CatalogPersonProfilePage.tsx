@@ -1,165 +1,167 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { PublicLayout } from '../../../layouts/public/PublicLayout';
-import { Person, BookWork } from '../../../shared/types';
-import { api as apiClient } from '../../../shared/api/client';
-import { ArrowRight, User } from 'lucide-react';
-import { BookCard } from '../../../shared/ui/BookCard';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, User, Globe, Calendar } from 'lucide-react';
+import { LoadingState } from '../../../shared/ui/LoadingState';
+import { ErrorState } from '../../../shared/ui/ErrorState';
+import { ContentCard } from '../../catalog/components/ContentCard';
+
+interface PersonWork {
+  slug: string;
+  title: string;
+  role: 'author' | 'translator' | 'narrator' | 'editor';
+  coverImage?: string;
+  type: 'story' | 'serial' | 'article' | 'audio' | 'book';
+}
+
+interface PersonProfile {
+  slug: string;
+  displayName: string;
+  aliases: string[];
+  image?: string;
+  bio: string;
+  birthYear?: number;
+  deathYear?: number;
+  country?: string;
+  works: PersonWork[];
+}
+
+const MOCK_PERSON: PersonProfile = {
+  slug: 'sadegh-hedayat',
+  displayName: 'صادق هدایت',
+  aliases: ['Sadegh Hedayat'],
+  bio: 'صادق هدایت داستان‌نویس، مترجم و روشنفکر ایرانی بود. او را همراهِ محمدعلی جمال‌زاده، بزرگ علوی و صادق چوبک یکی از پدران داستان‌نویسی نوین ایرانی می‌دانند. هدایت از پیشگامان داستان‌نویسی نوین ایران و روشنفکری برجسته بود. بسیاری از پژوهشگران، رمان بوف کور او را مشهورترین و درخشان‌ترین اثر ادبیات داستانی معاصر ایران دانسته‌اند.',
+  birthYear: 1281,
+  deathYear: 1330,
+  country: 'ایران',
+  works: [
+    { slug: 'boof-koor', title: 'بوف کور', role: 'author', type: 'book' },
+    { slug: 'sag-e-velgard', title: 'سگ ولگرد', role: 'author', type: 'story' },
+    { slug: 'maskh', title: 'مسخ', role: 'translator', type: 'book' },
+  ]
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  author: 'نوشته‌ها',
+  translator: 'ترجمه‌ها',
+  narrator: 'روایت‌ها',
+  editor: 'ویرایش‌ها',
+};
 
 export const CatalogPersonProfilePage: React.FC = () => {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug } = useParams();
   const navigate = useNavigate();
-  
-  const [person, setPerson] = useState<Person | null>(null);
-  const [books, setBooks] = useState<BookWork[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<'loading' | 'success' | 'error'>('loading');
+  const [person, setPerson] = useState<PersonProfile | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!slug) return;
-      try {
-        const res = await apiClient.getPersonBySlug(slug);
-        setPerson(res.data);
-        
-        // In a real app we'd fetch actual works related to this person
-        // For mock, we'll fetch all and filter or just return all
-        const allBooks = await apiClient.getCatalogBooks();
-        setBooks(allBooks.data || []); // Mocking authored works
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    setTimeout(() => {
+      setPerson(MOCK_PERSON);
+      setState('success');
+    }, 500);
   }, [slug]);
 
-  if (loading) {
-    return (
-      <PublicLayout>
-        <div className="flex justify-center items-center h-64">
-          <p className="text-emerald-400">در حال بارگذاری...</p>
-        </div>
-      </PublicLayout>
-    );
-  }
+  if (state === 'loading') return <LoadingState message="در حال جستجوی شخص..." />;
+  if (state === 'error' || !person) return <ErrorState message="شخص مورد نظر یافت نشد." />;
 
-  if (!person) {
-    return (
-      <PublicLayout>
-        <div className="text-center py-24">
-          <h2 className="text-xl text-emerald-300">شخص پیدا نشد</h2>
-        </div>
-      </PublicLayout>
-    );
-  }
+  // Group works by role
+  const worksByRole = person.works.reduce((acc, work) => {
+    if (!acc[work.role]) acc[work.role] = [];
+    acc[work.role].push(work);
+    return acc;
+  }, {} as Record<string, PersonWork[]>);
 
   return (
-    <PublicLayout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        
-        {/* Breadcrumb */}
-        <div className="text-sm text-emerald-400/60 mb-6 flex items-center gap-2">
-          <span className="cursor-pointer hover:text-emerald-300" onClick={() => navigate('/app/home')}>خانه</span>
-          <span>/</span>
-          <span className="cursor-pointer hover:text-emerald-300" onClick={() => navigate('/app/books')}>افراد</span>
-          <span>/</span>
-          <span className="text-emerald-300">{person.display_name}</span>
-        </div>
-
-        <button 
-          onClick={() => {
-            if (window.history.length > 2) {
-              navigate(-1);
-            } else {
-              navigate('/app/books');
-            }
-          }}
-          className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 mb-8 transition-colors"
-        >
-          <ArrowRight className="w-4 h-4" />
-          <span>بازگشت</span>
+    <div className="min-h-screen bg-[#050a09] text-emerald-50 font-['Vazirmatn',sans-serif] dir-rtl pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-[#050a09]/90 backdrop-blur-md border-b border-emerald-950/60 px-6 h-16 flex items-center">
+        <button onClick={() => navigate(-1)} className="p-2 -ms-2 rounded-full hover:bg-emerald-900/20 text-emerald-400 transition-colors">
+          <ArrowRight className="w-5 h-5" />
         </button>
-        
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row gap-8 items-center md:items-start mb-16 text-center md:text-right">
-          <div className="w-32 h-32 md:w-48 md:h-48 shrink-0">
-            {person.portrait_image_url ? (
-              <img 
-                src={person.portrait_image_url} 
-                alt={person.display_name}
-                className="w-full h-full object-cover rounded-full border-4 border-[#0d1f18] shadow-xl shadow-emerald-950/40"
-              />
+        <h1 className="text-sm font-bold text-emerald-100 ms-4">پروفایل</h1>
+      </header>
+
+      <main className="max-w-[1000px] mx-auto px-6 py-8 md:py-16">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-16">
+          <div className="w-32 h-32 md:w-48 md:h-48 rounded-full border-2 border-[#d4af37]/30 bg-emerald-950/50 overflow-hidden shrink-0 flex items-center justify-center text-emerald-800">
+            {person.image ? (
+              <img src={person.image} alt={person.displayName} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full rounded-full bg-emerald-900/40 flex items-center justify-center border-4 border-[#0d1f18]">
-                <User className="w-16 h-16 text-emerald-700" />
-              </div>
+              <User className="w-16 h-16" />
             )}
           </div>
           
-          <div className="flex-1 pt-2">
-            <h1 className="text-3xl md:text-4xl font-bold text-emerald-50 mb-2">
-              {person.display_name}
+          <div className="flex-1 text-center md:text-right">
+            <h1 className="text-3xl md:text-5xl font-bold text-emerald-50 font-['Playfair_Display',serif] mb-3">
+              {person.displayName}
             </h1>
-            {person.latin_name && (
-              <h2 className="text-xl text-emerald-400/60 mb-4 font-serif" dir="ltr">
-                {person.latin_name}
-              </h2>
-            )}
             
-            <div className="flex flex-wrap gap-2 justify-center md:justify-start mb-6">
-              <span className="px-3 py-1 bg-emerald-900/40 text-emerald-300 text-xs rounded-full border border-emerald-800/50">
-                نویسنده
-              </span>
-              {person.nationality && (
-                <span className="px-3 py-1 bg-[#122A20] text-emerald-400/80 text-xs rounded-full border border-emerald-900/30">
-                  {person.nationality}
-                </span>
-              )}
-            </div>
-            
-            {person.short_bio && (
-              <p className="text-emerald-200/90 leading-relaxed max-w-2xl">
-                {person.short_bio}
+            {person.aliases.length > 0 && (
+              <p className="text-sm text-emerald-500/70 font-mono dir-ltr inline-block mb-6">
+                {person.aliases.join(' / ')}
               </p>
             )}
+
+            <div className="flex flex-wrap justify-center md:justify-start gap-6 text-sm text-emerald-300/80 mb-8 border-y border-emerald-900/30 py-4">
+              {person.country && (
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-[#d4af37]" />
+                  <span>{person.country}</span>
+                </div>
+              )}
+              {(person.birthYear || person.deathYear) && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#d4af37]" />
+                  <span className="font-mono">
+                    {person.birthYear || '?'} تا {person.deathYear || 'اکنون'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="prose prose-invert prose-emerald max-w-none text-right">
+              <p className="text-[16px] leading-[1.9] text-emerald-100/90 text-justify">
+                {person.bio}
+              </p>
+            </div>
           </div>
         </div>
-        
-        {/* FULL BIOGRAPHY */}
-        {person.biography && (
-          <div className="mb-16">
-            <h3 className="text-xl font-bold text-emerald-200 mb-6 flex items-center gap-2">
-              <span className="w-1 h-6 bg-emerald-500 rounded-full"></span>
-              زندگی‌نامه
-            </h3>
-            <div className="bg-[#122A20]/20 p-6 md:p-8 rounded-3xl border border-emerald-900/20">
-              <div className="text-emerald-100/90 leading-relaxed text-justify space-y-4">
-                {person.biography?.split('\n')?.map((p, i) => (
-                  <p key={i}>{p}</p>
-                ))}
-              </div>
+
+        {/* Works Section */}
+        <section>
+          <h2 className="text-2xl font-bold text-emerald-50 mb-8 font-['Playfair_Display',serif]">آثار ثبت‌شده</h2>
+          
+          {Object.keys(worksByRole).length === 0 ? (
+            <div className="bg-emerald-950/10 border border-emerald-900/20 rounded-2xl p-12 text-center text-emerald-500/60 text-sm">
+              هنوز اثری در پلتفرم ثبت نشده است.
             </div>
-          </div>
-        )}
-        
-        {/* AUTHORED WORKS */}
-        {books.length > 0 && (
-          <div className="mb-16">
-            <h3 className="text-xl font-bold text-emerald-200 mb-6 flex items-center gap-2">
-              <span className="w-1 h-6 bg-emerald-500 rounded-full"></span>
-              آثار
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-              {books?.map((book) => (
-                <BookCard key={book.id} book={book} />
+          ) : (
+            <div className="space-y-12">
+              {Object.entries(worksByRole).map(([role, works]: [string, PersonWork[]]) => (
+                <div key={role}>
+                  <h3 className="text-lg font-bold text-[#d4af37] mb-6 flex items-center gap-3">
+                    <span className="w-8 h-px bg-[#d4af37]/30"></span>
+                    {ROLE_LABELS[role] || role}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {works.map(work => (
+                      <ContentCard
+                        key={work.slug}
+                        id={work.slug}
+                        slug={work.slug}
+                        title={work.title}
+                        summary={""}
+                        authorName={person.displayName}
+                        variant="compact"
+                        coverImage={work.coverImage}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-        )}
-
-      </div>
-    </PublicLayout>
+          )}
+        </section>
+      </main>
+    </div>
   );
 };
-

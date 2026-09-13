@@ -1,4 +1,6 @@
+const fs = require('fs');
 
+const code = `
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { GreenwichLogo } from '../../shared/ui/GreenwichLogo';
@@ -106,7 +108,7 @@ export const PublicLayout: React.FC<{ children?: React.ReactNode }> = ({ childre
         </div>
 
         {/* Bottom Tier: Navigation Bar (Desktop) */}
-        <div className={`hidden lg:block w-full transition-all duration-300 ${isScrolled ? 'fixed top-0 bg-[#0b1312]/95 backdrop-blur-md shadow-2xl border-b border-emerald-900/50' : 'bg-[#0b1312] border-b border-emerald-900/20'}`}>
+        <div className={\`hidden lg:block w-full transition-all duration-300 \${isScrolled ? 'fixed top-0 bg-[#0b1312]/95 backdrop-blur-md shadow-2xl border-b border-emerald-900/50' : 'bg-[#0b1312] border-b border-emerald-900/20'}\`}>
           <div className="max-w-[1400px] mx-auto px-6 flex justify-center">
             <nav className="flex items-center">
               {navLinks.map((link) => {
@@ -117,9 +119,9 @@ export const PublicLayout: React.FC<{ children?: React.ReactNode }> = ({ childre
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`relative px-8 py-5 text-[13px] font-bold uppercase tracking-widest transition-colors ${
+                    className={\`relative px-8 py-5 text-[13px] font-bold uppercase tracking-widest transition-colors \${
                       isActive ? 'text-[#d4af37]' : 'text-emerald-100 hover:text-emerald-50'
-                    }`}
+                    }\`}
                   >
                     {link.label}
                     {/* Active Indicator Underline */}
@@ -141,9 +143,9 @@ export const PublicLayout: React.FC<{ children?: React.ReactNode }> = ({ childre
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`block py-2 text-sm font-bold ${
+                className={\`block py-2 text-sm font-bold \${
                   location.pathname === link.path ? 'text-[#d4af37]' : 'text-emerald-100'
-                }`}
+                }\`}
               >
                 {link.label}
               </Link>
@@ -209,3 +211,6 @@ export const PublicLayout: React.FC<{ children?: React.ReactNode }> = ({ childre
     </div>
   );
 };
+`;
+
+fs.writeFileSync('src/layouts/public/PublicLayout.tsx', code);

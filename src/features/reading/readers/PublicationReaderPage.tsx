@@ -1,183 +1,204 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ReaderLayout } from './ReaderLayout';
-import { NativeReader } from './NativeReader';
-import { PdfReader } from './PdfReader';
-import { api as apiClient } from '../../../shared/api/client';
-import { Publication, PublicationSection, ReadingProgress } from '../../../shared/types';
-import { ChevronRight, Settings, List, Bookmark, Heart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Clock } from 'lucide-react';
 import { LoadingState } from '../../../shared/ui/LoadingState';
 import { ErrorState } from '../../../shared/ui/ErrorState';
+import { FootnotePopover, Footnote } from './FootnotePopover';
 
-export const PublicationReaderPage: React.FC = () => {
+// Final Shape Blocks Provided in Task Description
+type Mark =
+  | { type: 'bold' }
+  | { type: 'italic' }
+  | { type: 'link'; url: string }
+  | { type: 'footnoteRef'; footnoteId: string };
+
+interface InlineText {
+  type: 'text';
+  text: string;
+  marks?: Mark[];
+}
+
+interface ParagraphBlock { id: string; type: 'paragraph'; schemaVersion: number; content: InlineText[] }
+interface HeadingBlock   { id: string; type: 'heading';   schemaVersion: number; level: 2|3; content: InlineText[] }
+interface QuoteBlock     { id: string; type: 'quote';     schemaVersion: number; content: InlineText[]; attribution?: string }
+interface ImageBlock     { id: string; type: 'image';     schemaVersion: number; assetId: string; alt: string; caption?: string }
+interface DividerBlock   { id: string; type: 'divider';   schemaVersion: number }
+
+type DocumentBlock = ParagraphBlock | HeadingBlock | QuoteBlock | ImageBlock | DividerBlock;
+
+interface StructuredDocument {
+  documentSchemaVersion: number;
+  blocks: DocumentBlock[];
+  footnotes: Footnote[];
+}
+
+// Mock Data
+const MOCK_DOCUMENT: StructuredDocument = {
+  documentSchemaVersion: 1,
+  footnotes: [
+    { id: 'fn_1', order: 1, content: 'متن کامل پانویس. در کافه‌ی ما رسم است فنجان دست‌نخورده را تا پایان شیفت جمع نکنیم.' },
+  ],
+  blocks: [
+    {
+      id: 'b1', type: 'heading', schemaVersion: 1, level: 2,
+      content: [{ type: 'text', text: 'پنجشنبه‌ها' }]
+    },
+    {
+      id: 'b2', type: 'paragraph', schemaVersion: 1,
+      content: [{ type: 'text', text: 'سه سال طول کشید تا بپرسم. هر پنجشنبه ساعت پنج می‌آمد و دو قهوه سفارش می‌داد.' }]
+    },
+    {
+      id: 'b3', type: 'quote', schemaVersion: 1, attribution: 'چیزی که پدرم می‌گفت',
+      content: [{ type: 'text', text: 'آدم‌ها با غیبت‌ها زندگی می‌کنند، نه با حضورها.' }]
+    },
+    { id: 'b4', type: 'divider', schemaVersion: 1 },
+    {
+      id: 'b5', type: 'heading', schemaVersion: 1, level: 2,
+      content: [{ type: 'text', text: 'آن پنجشنبه' }]
+    },
+    {
+      id: 'b6', type: 'paragraph', schemaVersion: 1,
+      content: [
+        { type: 'text', text: 'آن روز باران می‌آمد و کافه خالی بود. فنجان دوم را که آوردم، سرش را بالا آورد و گفت: «' },
+        { type: 'text', text: 'بنشین', marks: [{ type: 'bold' }] },
+        { type: 'text', text: '».' }
+      ]
+    },
+    {
+      id: 'b7', type: 'image', schemaVersion: 1, assetId: 'img1', alt: 'میز چوبی خالی کنار پنجره‌ی بارانی', caption: 'غروب پنجشنبه، ساعت پنج و ربع'
+    },
+    {
+      id: 'b8', type: 'paragraph', schemaVersion: 1,
+      content: [
+        { type: 'text', text: 'فنجان دوم را آن روز نبردم. تا بسته شدن کافه همان‌جا ماند' },
+        { type: 'text', text: '.', marks: [{ type: 'footnoteRef', footnoteId: 'fn_1' }] }
+      ]
+    },
+  ]
+};
+
+export const PublicationReaderPage: React.FC<{ previewDoc?: any }> = ({ previewDoc }) => {
   const { publicationId } = useParams();
   const navigate = useNavigate();
-  
-  const [publication, setPublication] = useState<Publication | null>(null);
-  const [sections, setSections] = useState<PublicationSection[]>([]);
-  const [progress, setProgress] = useState<ReadingProgress | null>(null);
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Reader Settings
-  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>('sepia');
-  const [fontSize, setFontSize] = useState<number>(18);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showToc, setShowToc] = useState(false);
+  const [state, setState] = useState<'loading' | 'success' | 'error'>('loading');
+  const [document, setDocument] = useState<StructuredDocument | null>(null);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        if (!publicationId) return;
-        // Mock API needs slug or ID. We assume ID here.
-        const pubRes = await apiClient.getPublicationBySlug(publicationId);
-        setPublication(pubRes.data);
-        
-        if (pubRes.data.reader_format === 'NATIVE_STRUCTURED') {
-          const secRes = await apiClient.getPublicationSections(pubRes.data.id);
-          setSections(secRes.data);
-        }
-        
-        const progRes = await apiClient.getReadingProgress(pubRes.data.id);
-        setProgress(progRes.data);
-        
-      } catch (err) {
-        setError('خطا در بارگذاری محتوا');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+    // Simulate Fetch
+    setTimeout(() => {
+      setDocument(MOCK_DOCUMENT);
+      setState('success');
+    }, 600);
   }, [publicationId]);
 
-  const handleProgressUpdate = async (locator: any, percent: number) => {
-    if (!publication) return;
-    try {
-      const res = await apiClient.saveReadingProgress(publication.id, locator, percent);
-      setProgress(res.data);
-    } catch (err) {
-      console.error('Failed to save progress', err);
+  const renderInlineText = (nodes: InlineText[], footnotes: Footnote[]) => {
+    return nodes.map((node, i) => {
+      let element: React.ReactNode = node.text;
+
+      if (node.marks) {
+        node.marks.forEach(mark => {
+          if (mark.type === 'bold') element = <strong key={`b-${i}`} className="font-bold text-emerald-50">{element}</strong>;
+          if (mark.type === 'italic') element = <em key={`i-${i}`} className="italic">{element}</em>;
+          if (mark.type === 'link') element = <a key={`l-${i}`} href={mark.url} className="text-[#d4af37] underline underline-offset-4 hover:text-[#f4cf57] transition-colors">{element}</a>;
+        });
+      }
+
+      const hasFootnote = node.marks?.find(m => m.type === 'footnoteRef') as { type: 'footnoteRef', footnoteId: string } | undefined;
+      
+      return (
+        <React.Fragment key={i}>
+          {element}
+          {hasFootnote && <FootnotePopover footnoteId={hasFootnote.footnoteId} footnotes={footnotes} />}
+        </React.Fragment>
+      );
+    });
+  };
+
+  const renderBlock = (block: DocumentBlock, footnotes: Footnote[]) => {
+    switch (block.type) {
+      case 'paragraph':
+        return (
+          <p key={block.id} className="text-[16px] text-emerald-100/90 leading-[1.8] mb-6">
+            {renderInlineText(block.content, footnotes)}
+          </p>
+        );
+      case 'heading':
+        if (block.level === 2) {
+          return (
+            <h2 key={block.id} className="text-[18px] font-bold text-emerald-50 mt-10 mb-4 font-['Playfair_Display',serif]">
+              {renderInlineText(block.content, footnotes)}
+            </h2>
+          );
+        }
+        return (
+          <h3 key={block.id} className="text-[15px] font-bold text-emerald-100 mt-8 mb-3">
+            {renderInlineText(block.content, footnotes)}
+          </h3>
+        );
+      case 'quote':
+        return (
+          <blockquote key={block.id} className="border-s-2 border-[#d4af37] ps-4 my-8 relative">
+            <p className="text-[16px] italic text-emerald-200/90 leading-[1.8]">
+              {renderInlineText(block.content, footnotes)}
+            </p>
+            {block.attribution && (
+              <footer className="mt-3 text-[12px] text-emerald-500/80">
+                — {block.attribution}
+              </footer>
+            )}
+          </blockquote>
+        );
+      case 'image':
+        if (!block.alt) {
+          console.warn('ImageBlock is missing alt attribute:', block);
+        }
+        return (
+          <figure key={block.id} className="my-8 rounded-2xl overflow-hidden bg-emerald-950/20">
+            <div className="aspect-[4/3] relative border border-emerald-900/30 rounded-2xl overflow-hidden bg-[#070d0c] flex items-center justify-center text-emerald-800">
+              <span className="text-sm">تصویر: {block.alt}</span>
+            </div>
+            {block.caption && (
+              <figcaption className="text-center text-[11px] text-emerald-500/70 mt-3 font-mono">
+                {block.caption}
+              </figcaption>
+            )}
+          </figure>
+        );
+      case 'divider':
+        return (
+          <div key={block.id} className="flex items-center justify-center gap-4 my-12">
+            <div className="h-px w-12 bg-gradient-to-r from-transparent to-emerald-800/50"></div>
+            <div className="w-1.5 h-1.5 rounded-full bg-[#d4af37]/70"></div>
+            <div className="h-px w-12 bg-gradient-to-l from-transparent to-emerald-800/50"></div>
+          </div>
+        );
+      default:
+        return null;
     }
   };
 
-  const handleComplete = () => {
-    // Navigate back to detail or show a completion screen
-    navigate(`/app/publications/${publication?.slug}`);
-  };
-
-  if (loading) return <ReaderLayout><LoadingState message="در حال آماده‌سازی مطالعه..." /></ReaderLayout>;
-  if (error || !publication) return <ReaderLayout><ErrorState message={error || 'محتوا یافت نشد'} /></ReaderLayout>;
+  if (state === 'loading') return <LoadingState message="در حال آماده‌سازی متن..." />;
+  if (state === 'error' || !document) return <ErrorState message="مشکلی در بارگذاری داستان پیش آمد." onRetry={() => setState('loading')} />;
 
   return (
-    <ReaderLayout>
-      <div className="h-screen flex flex-col relative overflow-hidden">
-        {/* Top Chrome */}
-        <div className="shrink-0 h-14 bg-white/5 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4 z-20 absolute top-0 left-0 right-0">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-            <span className="font-bold text-sm truncate max-w-[150px] sm:max-w-xs">{publication.title}</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {publication.publication_type === 'BOOK' && (
-              <button 
-                onClick={() => setShowToc(!showToc)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
-              >
-                <List className="w-5 h-5" />
-              </button>
-            )}
-            <button 
-              onClick={() => setShowSettings(!showSettings)}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-          </div>
+    <div className="min-h-screen bg-[#050a09] text-emerald-50 font-['Vazirmatn',sans-serif] dir-rtl selection:bg-[#d4af37] selection:text-black">
+      {/* Top Bar - Reader Session */}
+      <header className="sticky top-0 z-40 bg-[#050a09]/90 backdrop-blur-md border-b border-emerald-950/60 px-4 h-14 flex items-center justify-between">
+        <button onClick={() => navigate(-1)} className="p-2 -ms-2 rounded-full hover:bg-emerald-900/20 text-emerald-400 transition-colors">
+          <ArrowRight className="w-5 h-5" />
+        </button>
+        
+        {/* Session Time - Thin Style */}
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-900/30 bg-emerald-950/20">
+          <Clock className="w-3.5 h-3.5 text-[#d4af37]" />
+          <span className="text-[11px] font-mono font-light text-emerald-300">ساعت ۱۷:۱۵</span>
         </div>
+      </header>
 
-        {/* Progress Bar */}
-        {progress && (
-          <div className="absolute top-14 left-0 right-0 h-0.5 bg-black/10 z-20">
-            <div 
-              className="h-full bg-[#d4af37] transition-all duration-300"
-              style={{ width: `${progress.progress_percent * 100}%` }}
-            />
-          </div>
-        )}
-
-        {/* Settings Dropdown */}
-        {showSettings && (
-          <div className="absolute top-16 left-4 bg-[#121e1c] text-emerald-100 p-4 rounded-2xl border border-emerald-900/60 shadow-2xl z-30 w-64 space-y-4">
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-emerald-400">پس‌زمینه مطالعه</span>
-              <div className="flex gap-2">
-                <button onClick={() => setTheme('light')} className={`flex-1 py-2 rounded-lg bg-white text-gray-900 font-bold text-xs border-2 ${theme === 'light' ? 'border-[#d4af37]' : 'border-transparent'}`}>روشن</button>
-                <button onClick={() => setTheme('sepia')} className={`flex-1 py-2 rounded-lg bg-[#f4ecd8] text-[#5c4b37] font-bold text-xs border-2 ${theme === 'sepia' ? 'border-[#d4af37]' : 'border-transparent'}`}>سپیا</button>
-                <button onClick={() => setTheme('dark')} className={`flex-1 py-2 rounded-lg bg-[#0b1312] text-emerald-100 font-bold text-xs border-2 ${theme === 'dark' ? 'border-[#d4af37]' : 'border-transparent'}`}>تاریک</button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-emerald-400">اندازه قلم</span>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setFontSize(Math.max(12, fontSize - 2))} className="p-2 bg-emerald-900/40 rounded-lg hover:bg-emerald-800/40">A-</button>
-                <span className="flex-1 text-center font-mono text-sm">{fontSize}</span>
-                <button onClick={() => setFontSize(Math.min(32, fontSize + 2))} className="p-2 bg-emerald-900/40 rounded-lg hover:bg-emerald-800/40">A+</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TOC Drawer */}
-        {showToc && (
-          <div className="absolute top-14 right-0 bottom-0 w-72 bg-[#121e1c] border-l border-emerald-900/60 shadow-2xl z-20 overflow-y-auto">
-            <div className="p-4 border-b border-emerald-900/40">
-              <h3 className="font-bold text-emerald-100">فهرست</h3>
-            </div>
-            <div className="p-2 space-y-1">
-              {sections?.map(sec => (
-                <button 
-                  key={sec.id}
-                  className="w-full text-right p-3 rounded-xl hover:bg-[#0b1312] text-sm text-emerald-200 transition-colors flex items-center justify-between"
-                >
-                  <span>{sec.title}</span>
-                  {/* Could show section progress here */}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Reader Canvas */}
-        <div className="flex-1 relative pt-14">
-          {publication.reader_format === 'NATIVE_STRUCTURED' ? (
-            <NativeReader 
-              publication={publication}
-              sections={sections}
-              initialProgress={progress?.progress_percent || 0}
-              onProgressUpdate={handleProgressUpdate}
-              onComplete={handleComplete}
-              theme={theme}
-              fontSize={fontSize}
-            />
-          ) : publication.reader_format === 'PDF' ? (
-            <PdfReader
-              publication={publication}
-              initialProgress={progress?.progress_percent || 0}
-              onProgressUpdate={handleProgressUpdate}
-              onComplete={handleComplete}
-            />
-          ) : (
-            <div className="p-8 text-center">فرمت خواندن پشتیبانی نمی‌شود</div>
-          )}
-        </div>
-      </div>
-    </ReaderLayout>
+      {/* Reader Canvas */}
+      <main className="max-w-[60ch] mx-auto px-6 py-12 pb-32">
+        {document.blocks.map(block => renderBlock(block, document.footnotes))}
+      </main>
+    </div>
   );
 };

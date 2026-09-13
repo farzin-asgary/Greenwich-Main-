@@ -1,321 +1,212 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { PublicLayout } from '../../../layouts/public/PublicLayout';
-import { BookWork, BookEdition, WorkContributor, ExternalPurchaseLink, Person, EditionContributor } from '../../../shared/types';
-import { api as apiClient } from '../../../shared/api/client';
-import { BookOpen, ShoppingBag, ExternalLink, ArrowRight, BookmarkPlus, Share2 } from 'lucide-react';
-import { BookCard } from '../../../shared/ui/BookCard';
-import { Button, LinkButton } from '../../../shared/ui/Button';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { ArrowRight, Book, ShoppingCart, User, Layers } from 'lucide-react';
+import { LoadingState } from '../../../shared/ui/LoadingState';
+import { ErrorState } from '../../../shared/ui/ErrorState';
+import { ContentCard } from '../components/ContentCard';
 
-export const CatalogBookDetailPage: React.FC = () => {
-  const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  
-  const [book, setBook] = useState<BookWork | null>(null);
-  const [editions, setEditions] = useState<BookEdition[]>([]);
-  const [contributors, setContributors] = useState<WorkContributor[]>([]);
-  const [peopleMap, setPeopleMap] = useState<Record<string, Person>>({});
-  const [purchaseLinksMap, setPurchaseLinksMap] = useState<Record<string, ExternalPurchaseLink[]>>({});
-  const [editionContributorsMap, setEditionContributorsMap] = useState<Record<string, EditionContributor[]>>({});
-  const [relatedBooks, setRelatedBooks] = useState<BookWork[]>([]);
-  const [loading, setLoading] = useState(true);
+interface BookEdition {
+  id: string;
+  publisher: string;
+  year: number;
+  editionNumber: number;
+  isbn13: string;
+  pageCount: number;
+  format: 'paperback' | 'hardcover' | 'ebook' | 'audiobook' | 'pdf';
+  translators: string[];
+  purchaseLinks: { retailer: string; url: string }[];
+}
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!slug) return;
-      try {
-        const bookRes = await apiClient.getBookWorkBySlug(slug);
-        if (!bookRes.data) {
-          setLoading(false);
-          return;
-        }
-        
-        setBook(bookRes.data);
-        
-        const [editionsRes, contribsRes] = await Promise.all([
-          apiClient.getBookEditions(bookRes.data.id),
-          apiClient.getWorkContributors(bookRes.data.id)
-        ]);
-        
-        setEditions(editionsRes.data || []);
-        setContributors(contribsRes.data || []);
-        
-        // Fetch purchase links and contributors for editions
-        const plMap: Record<string, ExternalPurchaseLink[]> = {};
-        const ecMap: Record<string, EditionContributor[]> = {};
-        for (const ed of editionsRes.data || []) {
-          const [linksRes, ecRes] = await Promise.all([
-            apiClient.getPurchaseLinks(ed.id),
-            apiClient.getEditionContributors(ed.id)
-          ]);
-          plMap[ed.id] = linksRes.data;
-          ecMap[ed.id] = ecRes.data;
-        }
-        setPurchaseLinksMap(plMap);
-        setEditionContributorsMap(ecMap);
-        
-        // Fetch people details
-        const peopleList = await apiClient.getPeople();
-        const pMap: Record<string, Person> = {};
-        peopleList.data.forEach(p => pMap[p.id] = p);
-        setPeopleMap(pMap);
+interface CatalogBook {
+  slug: string;
+  title: string;
+  originalTitle: string;
+  originalYear: number;
+  description: string;
+  coverImage?: string;
+  authors: string[];
+  editions: BookEdition[];
+  summarySlug?: string; // If there is a book-summary for this
+}
 
-        // Fetch related books (mock)
-        const allBooks = await apiClient.getCatalogBooks();
-        setRelatedBooks((allBooks.data || []).filter(b => b.id !== bookRes.data?.id).slice(0, 5));
-        
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [slug]);
-
-  if (loading) {
-    return (
-      <PublicLayout>
-        <div className="flex justify-center items-center h-64">
-          <p className="text-emerald-400">در حال جستجو...</p>
-        </div>
-      </PublicLayout>
-    );
-  }
-
-  if (!book) {
-    return (
-      <PublicLayout>
-        <div className="text-center py-24">
-          <h2 className="text-xl text-emerald-300">کتاب پیدا نشد</h2>
-        </div>
-      </PublicLayout>
-    );
-  }
-
-  const author = contributors.find(c => c.role === 'AUTHOR');
-  const authorPerson = author ? peopleMap[author.person_id] : null;
-
-  return (
-    <PublicLayout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        
-        {/* Breadcrumb */}
-        <div className="text-sm text-emerald-400/60 mb-6 flex items-center gap-2">
-          <span className="cursor-pointer hover:text-emerald-300" onClick={() => navigate('/app/home')}>خانه</span>
-          <span>/</span>
-          <span className="cursor-pointer hover:text-emerald-300" onClick={() => navigate('/app/books')}>کتاب‌ها</span>
-          <span>/</span>
-          <span className="text-emerald-300">{book.title}</span>
-        </div>
-
-        <button 
-          onClick={() => {
-            if (window.history.length > 2) {
-              navigate(-1);
-            } else {
-              navigate('/app/books');
-            }
-          }}
-          className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 mb-8 transition-colors"
-        >
-          <ArrowRight className="w-4 h-4" />
-          <span>بازگشت</span>
-        </button>
-        
-        {/* HERO SECTION */}
-        <div className="flex flex-col md:flex-row gap-8 mb-12 bg-[#122A20]/40 p-6 md:p-8 rounded-3xl border border-emerald-900/30">
-          <div className="w-full md:w-1/3 max-w-[240px] shrink-0 mx-auto md:mx-0">
-            {book.cover_image_url ? (
-              <img 
-                src={book.cover_image_url} 
-                alt={book.title}
-                className="w-full aspect-[2/3] object-cover rounded-xl shadow-2xl shadow-emerald-950/50"
-              />
-            ) : (
-              <div className="w-full aspect-[2/3] bg-emerald-900/40 rounded-xl flex items-center justify-center">
-                <BookOpen className="w-16 h-16 text-emerald-700" />
-              </div>
-            )}
-          </div>
-          
-          <div className="flex-1 flex flex-col justify-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-emerald-50 mb-2 leading-tight">
-              {book.title}
-            </h1>
-            {book.original_title && (
-              <h2 className="text-xl text-emerald-300/60 mb-6 font-serif" dir="ltr">
-                {book.original_title}
-              </h2>
-            )}
-            
-            {authorPerson && (
-              <div 
-                className="flex items-center gap-3 mb-8 cursor-pointer group w-fit"
-                onClick={() => navigate(`/app/people/${authorPerson.slug}`)}
-              >
-                {authorPerson.portrait_image_url ? (
-                  <img src={authorPerson.portrait_image_url} alt={authorPerson.display_name} className="w-10 h-10 rounded-full object-cover border-2 border-emerald-800/50 group-hover:border-emerald-500 transition-colors" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-emerald-900/50 flex items-center justify-center">
-                    <span className="text-emerald-400">{authorPerson.display_name.charAt(0)}</span>
-                  </div>
-                )}
-                <div>
-                  <p className="text-emerald-100 font-bold group-hover:text-white transition-colors">{authorPerson.display_name}</p>
-                  <p className="text-xs text-emerald-400/80">نویسنده</p>
-                </div>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-              {book.original_publication_year && (
-                <div>
-                  <p className="text-xs text-emerald-500/80 mb-1">سال انتشار اصلی</p>
-                  <p className="text-sm text-emerald-200">{book.original_publication_year}</p>
-                </div>
-              )}
-              {book.original_language && (
-                <div>
-                  <p className="text-xs text-emerald-500/80 mb-1">زبان اصلی</p>
-                  <p className="text-sm text-emerald-200">{book.original_language}</p>
-                </div>
-              )}
-            </div>
-            
-            {/* Quick Actions Placeholder */}
-            <div className="flex flex-wrap gap-4 mt-auto">
-              <Button variant="primary" size="lg" leftIcon={<BookOpen className="w-5 h-5" />}>
-                شروع مطالعه خلاصه
-              </Button>
-              <Button variant="tertiary" size="lg" leftIcon={<BookmarkPlus className="w-5 h-5" />}>
-                افزودن به کتابخانه
-              </Button>
-              <Button variant="tertiary" size="icon" leftIcon={<Share2 className="w-5 h-5" />}>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* DESCRIPTION */}
-        {book.description && (
-          <div className="mb-16">
-            <h3 className="text-xl font-bold text-emerald-200 mb-4 flex items-center gap-2">
-              <span className="w-1 h-6 bg-emerald-500 rounded-full"></span>
-              درباره کتاب
-            </h3>
-            <div className="text-emerald-100/90 leading-relaxed text-justify space-y-4">
-              {book.description?.split('\n')?.map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* EDITIONS */}
-        {editions.length > 0 && (
-          <div className="mb-16">
-            <h3 className="text-xl font-bold text-emerald-200 mb-6 flex items-center gap-2">
-              <span className="w-1 h-6 bg-emerald-500 rounded-full"></span>
-              نسخه‌ها و ترجمه‌ها
-            </h3>
-            
-            <div className="space-y-4">
-              {editions?.map(ed => {
-                const edContribs = editionContributorsMap[ed.id] || [];
-                const translators = edContribs.filter(c => c.role === 'TRANSLATOR').map(c => peopleMap[c.person_id]).filter(Boolean);
-                
-                return (
-                  <div key={ed.id} className="greenwich-card rounded-2xl p-5 border border-emerald-900/40">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div className="flex-1">
-                        <h4 className="font-bold text-lg text-emerald-100 mb-2">{ed.title}</h4>
-                        
-                        <div className="flex flex-wrap gap-4 text-sm text-emerald-400">
-                          {translators.length > 0 && (
-                            <div className="flex items-center gap-1">
-                              <span className="opacity-70">ترجمه</span>
-                              {translators?.map((t, idx) => (
-                                <span key={t.id}>
-                                  <span 
-                                    onClick={() => navigate(`/app/people/${t.slug}`)}
-                                    className="text-emerald-300 hover:text-white cursor-pointer underline decoration-emerald-800 underline-offset-4"
-                                  >
-                                    {t.display_name}
-                                  </span>
-                                  {idx < translators.length - 1 ? ' و ' : ''}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {(ed.publisher_id === 'pub-negah' || ed.publisher_id === 'pub-cheshmeh') && (
-                            <span className="flex items-center gap-1">
-                              <span className="w-1 h-1 rounded-full bg-emerald-800"></span>
-                              {ed.publisher_id === 'pub-negah' ? 'انتشارات نگاه' : 'نشر چشمه'}
-                            </span>
-                          )}
-                          
-                          {ed.publication_year && (
-                            <span className="flex items-center gap-1">
-                              <span className="w-1 h-1 rounded-full bg-emerald-800"></span>
-                              {ed.publication_year}
-                            </span>
-                          )}
-                          
-                          {ed.page_count && (
-                            <span className="flex items-center gap-1">
-                              <span className="w-1 h-1 rounded-full bg-emerald-800"></span>
-                              {ed.page_count} صفحه
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Purchase Links */}
-                      {purchaseLinksMap[ed.id]?.length > 0 && (
-                        <div className="flex gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-                          {purchaseLinksMap[ed.id]?.map(link => (
-                            <LinkButton
-                              key={link.id}
-                              href={link.url}
-                              external
-                              variant="tertiary"
-                              size="sm"
-                              leftIcon={<ShoppingBag className="w-4 h-4" />}
-                              rightIcon={<ExternalLink className="w-3 h-3 opacity-50" />}
-                            >
-                              خرید نسخه
-                            </LinkButton>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        
-        {/* RELATED BOOKS */}
-        {relatedBooks.length > 0 && (
-          <div className="mb-16">
-            <h3 className="text-xl font-bold text-emerald-200 mb-6 flex items-center gap-2">
-              <span className="w-1 h-6 bg-emerald-500 rounded-full"></span>
-              کتاب‌های مرتبط
-            </h3>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-              {relatedBooks?.map((related) => (
-                <BookCard key={related.id} book={related} />
-              ))}
-            </div>
-          </div>
-        )}
-
-      </div>
-    </PublicLayout>
-  );
+const MOCK_BOOK: CatalogBook = {
+  slug: 'boof-koor',
+  title: 'بوف کور',
+  originalTitle: 'The Blind Owl',
+  originalYear: 1315,
+  description: 'در زندگی زخم‌هایی هست که مثل خوره روح را آهسته در انزوا می‌خورد و می‌تراشد. این دردها را نمی‌شود به کسی اظهار کرد... بوف کور شناخته‌شده‌ترین اثر صادق هدایت است که سبک سوررئال و روایت غیرخطی آن مرزهای داستان‌نویسی ایران را تغییر داد. راوی داستان، نقاشی روی قلمدان است که مدام کابوس‌ها و توهماتش را با واقعیتی تاریک در هم می‌آمیزد.',
+  authors: ['صادق هدایت'],
+  summarySlug: 'boof-koor-summary',
+  editions: [
+    {
+      id: 'ed_1',
+      publisher: 'نشر چشمه',
+      year: 1398,
+      editionNumber: 5,
+      isbn13: '978-964-362-000-0',
+      pageCount: 144,
+      format: 'paperback',
+      translators: [],
+      purchaseLinks: [
+        { retailer: 'فیدیبو', url: 'https://fidibo.com' },
+        { retailer: 'شهر کتاب', url: 'https://shahreketab.com' }
+      ]
+    }
+  ]
 };
 
+const FORMAT_LABELS: Record<string, string> = {
+  paperback: 'شمیز (جلد نرم)',
+  hardcover: 'گالینگور (جلد سخت)',
+  ebook: 'کتاب الکترونیک',
+  audiobook: 'کتاب صوتی',
+  pdf: 'فایل PDF'
+};
+
+export const CatalogBookDetailPage: React.FC = () => {
+  const { slug } = useParams();
+  const [state, setState] = useState<'loading' | 'success' | 'error'>('loading');
+  const [book, setBook] = useState<CatalogBook | null>(null);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setBook(MOCK_BOOK);
+      setState('success');
+    }, 500);
+  }, [slug]);
+
+  if (state === 'loading') return <LoadingState message="در حال جستجوی کتاب..." />;
+  if (state === 'error' || !book) return <ErrorState message="کتاب مورد نظر یافت نشد." />;
+
+  return (
+    <div className="min-h-screen bg-[#050a09] text-emerald-50 font-['Vazirmatn',sans-serif] dir-rtl pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-[#050a09]/90 backdrop-blur-md border-b border-emerald-950/60 px-6 h-16 flex items-center">
+        <Link to="/app/books" className="p-2 -ms-2 rounded-full hover:bg-emerald-900/20 text-emerald-400 transition-colors">
+          <ArrowRight className="w-5 h-5" />
+        </Link>
+        <h1 className="text-sm font-bold text-emerald-100 ms-4">شناسنامه کتاب</h1>
+      </header>
+
+      <main className="max-w-[1200px] mx-auto px-6 py-8 md:py-12">
+        {/* Book Summary Card (if exists) */}
+        {book.summarySlug && (
+          <div className="mb-12">
+            <h3 className="text-sm font-bold text-[#d4af37] mb-4">خلاصه و معرفی در گرینویچ</h3>
+            <div className="max-w-md">
+              <ContentCard
+                id="summary_1"
+                slug={book.summarySlug}
+                title={`نگاهی به ${book.title}`}
+                summary="یک بررسی جامع درباره‌ی مفاهیم پنهان و نمادهای استفاده شده در این شاهکار ادبی."
+                authorName="تحریریه گرینویچ"
+                variant="compact"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12">
+          {/* Cover & Basic Info */}
+          <div className="md:col-span-4 lg:col-span-3">
+            <div className="aspect-[2/3] bg-emerald-950/30 rounded-2xl border border-emerald-900/30 overflow-hidden flex items-center justify-center text-emerald-800 shadow-2xl">
+              {book.coverImage ? (
+                <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover" />
+              ) : (
+                <Book className="w-16 h-16" />
+              )}
+            </div>
+            
+            <div className="mt-6 space-y-4 text-sm text-emerald-300">
+              <div className="flex justify-between items-center py-2 border-b border-emerald-900/20">
+                <span className="text-emerald-500/70">نویسنده</span>
+                <span className="font-bold text-emerald-100">{book.authors.join('، ')}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-emerald-900/20">
+                <span className="text-emerald-500/70">سال نگارش</span>
+                <span className="font-mono">{book.originalYear}</span>
+              </div>
+              {book.originalTitle && (
+                <div className="flex justify-between items-center py-2 border-b border-emerald-900/20">
+                  <span className="text-emerald-500/70">عنوان اصلی</span>
+                  <span className="font-mono dir-ltr">{book.originalTitle}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Description & Editions */}
+          <div className="md:col-span-8 lg:col-span-9 space-y-12">
+            <section>
+              <h1 className="text-3xl md:text-4xl font-bold text-emerald-50 font-['Playfair_Display',serif] mb-6">
+                {book.title}
+              </h1>
+              <div className="prose prose-invert prose-emerald max-w-none">
+                <p className="text-[16px] leading-[1.9] text-emerald-100/90 text-justify">
+                  {book.description}
+                </p>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-bold text-[#d4af37] border-b border-emerald-900/30 pb-4 mb-6 flex items-center gap-2">
+                <Layers className="w-5 h-5" />
+                نسخه‌ها و انتشارات
+              </h2>
+              
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                {book.editions.map((edition) => (
+                  <div key={edition.id} className="bg-[#0b1312] border border-emerald-900/40 rounded-2xl p-6">
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h4 className="font-bold text-emerald-100 text-lg mb-1">{edition.publisher}</h4>
+                        <p className="text-xs text-emerald-400/60">{FORMAT_LABELS[edition.format]} · چاپ {edition.editionNumber} ({edition.year})</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 mb-8 text-sm">
+                      {edition.translators.length > 0 && (
+                        <div className="flex justify-between items-center py-2 border-b border-emerald-900/20">
+                          <span className="text-emerald-500/70">مترجم</span>
+                          <span className="font-bold text-emerald-200">{edition.translators.join('، ')}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center py-2 border-b border-emerald-900/20">
+                        <span className="text-emerald-500/70">شابک (ISBN)</span>
+                        <span className="font-mono text-emerald-300 tracking-wider dir-ltr">{edition.isbn13}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-emerald-900/20">
+                        <span className="text-emerald-500/70">تعداد صفحات</span>
+                        <span className="font-mono text-emerald-300">{edition.pageCount}</span>
+                      </div>
+                    </div>
+
+                    {edition.purchaseLinks.length > 0 && (
+                      <div className="space-y-3">
+                        <h5 className="text-xs font-bold text-emerald-500/80 uppercase tracking-widest mb-3">لینک‌های خرید</h5>
+                        <div className="flex flex-wrap gap-3">
+                          {edition.purchaseLinks.map((link, idx) => (
+                            <a
+                              key={idx}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-900/20 border border-emerald-700/30 text-emerald-200 text-xs font-bold hover:bg-[#d4af37] hover:border-[#d4af37] hover:text-[#0b1312] transition-colors"
+                            >
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                              خرید از {link.retailer}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
